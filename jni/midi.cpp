@@ -33,46 +33,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <jni.h>
-#include <dlfcn.h>
-#include <assert.h>
-#include <pthread.h>
-
-#include <android/log.h>
-
-// for native audio
-#include <SLES/OpenSLES.h>
-#include <SLES/OpenSLES_Android.h>
-
-#include "org_billthefarmer_mididriver_MidiDriver.h"
-
-// for EAS midi
-#include "eas.h"
-#include "eas_reverb.h"
-
-#define LOG_TAG "MidiDriver"
-
-#define LOG_D(tag, ...) __android_log_print(ANDROID_LOG_DEBUG, tag, __VA_ARGS__)
-#define LOG_E(tag, ...) __android_log_print(ANDROID_LOG_ERROR, tag, __VA_ARGS__)
-#define LOG_I(tag, ...) __android_log_print(ANDROID_LOG_INFO, tag, __VA_ARGS__)
-
-// determines how many EAS buffers to fill a host buffer
-#define NUM_BUFFERS 4
-
-// mutex
-static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-
-// engine interfaces
-static SLObjectItf engineObject = NULL;
-static SLEngineItf engineEngine;
-
-// output mix interfaces
-static SLObjectItf outputMixObject = NULL;
-
-// buffer queue player interfaces
-static SLObjectItf bqPlayerObject = NULL;
-static SLPlayItf bqPlayerPlay;
-static SLAndroidSimpleBufferQueueItf bqPlayerBufferQueue;
+#include "midi.h"
 
 // EAS function pointers
 EAS_PUBLIC const S_EAS_LIB_CONFIG *(*pEAS_Config) (void);
@@ -95,17 +56,28 @@ EAS_PUBLIC EAS_RESULT (*pEAS_WriteMIDIStream)(EAS_DATA_HANDLE pEASData,
                                               EAS_I32 count);
 EAS_PUBLIC EAS_RESULT (*pEAS_CloseMIDIStream) (EAS_DATA_HANDLE pEASData,
 					       EAS_HANDLE streamHandle);
+// mutex
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-// EAS data
-static EAS_DATA_HANDLE pEASData;
-const S_EAS_LIB_CONFIG *pLibConfig;
-static EAS_PCM *buffer;
-static EAS_I32 bufferSize;
-static EAS_HANDLE midiHandle;
+// Midi object
+Midi midi(0);
+
+// Midi constructor
+Midi::Midi(int i)
+{
+    engineObject    = NULL;
+    outputMixObject = NULL;
+    bqPlayerObject  = NULL;
+}
 
 // this callback handler is called every time a buffer finishes
 // playing
 void bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *context)
+{
+    midi.callback(bq, context);
+}
+
+void Midi::callback(SLAndroidSimpleBufferQueueItf bq, void *context)
 {
     EAS_RESULT result;
     EAS_I32 numGenerated;
@@ -143,7 +115,7 @@ void bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *context)
 }
 
 // create the engine and output mix objects
-SLresult createEngine()
+SLresult Midi::createEngine()
 {
     SLresult result;
 
@@ -189,7 +161,7 @@ SLresult createEngine()
 }
 
 // create buffer queue audio player
-SLresult createBufferQueueAudioPlayer()
+SLresult Midi::createBufferQueueAudioPlayer()
 {
     SLresult result;
 
@@ -264,7 +236,7 @@ SLresult createBufferQueueAudioPlayer()
 }
 
 // shut down the native audio system
-void shutdownAudio()
+void Midi::shutdownAudio()
 {
     // destroy buffer queue audio player object, and invalidate all
     // associated interfaces
@@ -293,7 +265,7 @@ void shutdownAudio()
 }
 
 // init EAS midi
-EAS_RESULT initEAS()
+EAS_RESULT Midi::initEAS()
 {
     EAS_RESULT result;
 
@@ -325,7 +297,7 @@ EAS_RESULT initEAS()
 }
 
 // shutdown EAS midi
-void shutdownEAS()
+void Midi::shutdownEAS()
 {
 
     if (midiHandle != NULL)
@@ -345,6 +317,11 @@ void shutdownEAS()
 jboolean
 Java_org_billthefarmer_mididriver_MidiDriver_init(JNIEnv *env,
 						  jobject obj)
+{
+    return midi.init(env, obj);
+}
+
+jboolean Midi::init(JNIEnv *env, jobject obj)
 {
     EAS_RESULT result;
 
@@ -407,6 +384,11 @@ jintArray
 Java_org_billthefarmer_mididriver_MidiDriver_config(JNIEnv *env,
 						    jobject obj)
 {
+    return midi.config(env, obj);
+}
+
+jintArray Midi::config(JNIEnv *env, jobject obj)
+{
     jboolean isCopy;
 
     if (pLibConfig == NULL)
@@ -431,6 +413,11 @@ jboolean
 Java_org_billthefarmer_mididriver_MidiDriver_write(JNIEnv *env,
 						   jobject obj,
 						   jbyteArray byteArray)
+{
+    return midi.write(env, obj, byteArray);
+}
+
+jboolean Midi::write(JNIEnv *env, jobject obj, jbyteArray byteArray)
 {
     jboolean isCopy;
     EAS_RESULT result;
@@ -463,6 +450,11 @@ Java_org_billthefarmer_mididriver_MidiDriver_write(JNIEnv *env,
 jboolean
 Java_org_billthefarmer_mididriver_MidiDriver_shutdown(JNIEnv *env,
 						      jobject obj)
+{
+    return midi.shutdown(env, obj);
+}
+
+jboolean Midi::shutdown(JNIEnv *env, jobject obj)
 {
     EAS_RESULT result;
 

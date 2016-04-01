@@ -59,67 +59,45 @@
 // determines how many EAS buffers to fill a host buffer
 #define NUM_BUFFERS 4
 
-// EAS data
-const S_EAS_LIB_CONFIG *pLibConfig;
-
-// EAS function pointers
-EAS_PUBLIC const S_EAS_LIB_CONFIG *(*pEAS_Config) (void);
-EAS_PUBLIC EAS_RESULT (*pEAS_Init) (EAS_DATA_HANDLE *ppEASData);
-EAS_PUBLIC EAS_RESULT (*pEAS_SetParameter) (EAS_DATA_HANDLE pEASData,
-					    EAS_I32 module,
-					    EAS_I32 param,
-					    EAS_I32 value);
-EAS_PUBLIC EAS_RESULT (*pEAS_OpenMIDIStream) (EAS_DATA_HANDLE pEASData,
-					      EAS_HANDLE *pStreamHandle,
-                                              EAS_HANDLE streamHandle);
-EAS_PUBLIC EAS_RESULT (*pEAS_Shutdown) (EAS_DATA_HANDLE pEASData);
-EAS_PUBLIC EAS_RESULT (*pEAS_Render) (EAS_DATA_HANDLE pEASData,
-				      EAS_PCM *pOut,
-				      EAS_I32 numRequested,
-                                      EAS_I32 *pNumGenerated);
-EAS_PUBLIC EAS_RESULT (*pEAS_WriteMIDIStream)(EAS_DATA_HANDLE pEASData,
-					      EAS_HANDLE streamHandle,
-					      EAS_U8 *pBuffer,
-                                              EAS_I32 count);
-EAS_PUBLIC EAS_RESULT (*pEAS_CloseMIDIStream) (EAS_DATA_HANDLE pEASData,
-					       EAS_HANDLE streamHandle);
-
-class MidiDriver
+// Midi class
+class Midi
 {
 public:
-    MidiDriver(jobject){}
-    ~MidiDriver(){}
 
-    jobject getJobject();
-    SLresult createEngine();
-    SLresult createBufferQueueAudioPlayer();
-    void shutdownAudio();
-    EAS_RESULT initEAS();
-    void shutdownEAS();
+    Midi(int);
+    ~Midi(){}
+
+    jboolean init(JNIEnv *, jobject);
+    jintArray config(JNIEnv *, jobject);
+    jboolean write(JNIEnv *, jobject, jbyteArray);
+    jboolean shutdown(JNIEnv *, jobject);
+
+    void callback(SLAndroidSimpleBufferQueueItf bq, void *context);
 
 private:
-    jobject jobj;
-
-    // mutex
-    pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
     // engine interfaces
-    SLObjectItf engineObject = NULL;
+    SLObjectItf engineObject;
     SLEngineItf engineEngine;
 
     // output mix interfaces
-    SLObjectItf outputMixObject = NULL;
+    SLObjectItf outputMixObject;
 
     // buffer queue player interfaces
-    SLObjectItf bqPlayerObject = NULL;
+    SLObjectItf bqPlayerObject;
     SLPlayItf bqPlayerPlay;
     SLAndroidSimpleBufferQueueItf bqPlayerBufferQueue;
 
     // EAS data
     EAS_DATA_HANDLE pEASData;
+    const S_EAS_LIB_CONFIG *pLibConfig;
     EAS_PCM *buffer;
     EAS_I32 bufferSize;
     EAS_HANDLE midiHandle;
 
-    void bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *context);
-}
+    SLresult createEngine();
+    SLresult createBufferQueueAudioPlayer();
+    void shutdownAudio();
+    EAS_RESULT initEAS();
+    void shutdownEAS();
+};
