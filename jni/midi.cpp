@@ -60,14 +60,17 @@ EAS_PUBLIC EAS_RESULT (*pEAS_CloseMIDIStream) (EAS_DATA_HANDLE pEASData,
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 // Midi object
-Midi midi(0);
+static Midi midi(0);
 
 // Midi constructor
-Midi::Midi(int i)
+Midi::Midi(int)
 {
     engineObject    = NULL;
     outputMixObject = NULL;
     bqPlayerObject  = NULL;
+
+    pEASData = NULL;
+    midiHandle = NULL;
 }
 
 // this callback handler is called every time a buffer finishes
