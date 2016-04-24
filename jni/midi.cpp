@@ -95,7 +95,9 @@ EAS_PUBLIC EAS_RESULT (*pEAS_WriteMIDIStream)(EAS_DATA_HANDLE pEASData,
                                               EAS_I32 count);
 EAS_PUBLIC EAS_RESULT (*pEAS_CloseMIDIStream) (EAS_DATA_HANDLE pEASData,
 					       EAS_HANDLE streamHandle);
-
+EAS_PUBLIC EAS_RESULT (*pEAS_LoadDLSCollection) (EAS_DATA_HANDLE pEASData,
+						 EAS_HANDLE streamHandle,
+						 EAS_FILE_LOCATOR locator);
 // EAS data
 static EAS_DATA_HANDLE pEASData;
 const S_EAS_LIB_CONFIG *pLibConfig;
@@ -459,6 +461,32 @@ Java_org_billthefarmer_mididriver_MidiDriver_write(JNIEnv *env,
     return JNI_TRUE;
 }
 
+// midi load dls
+jboolean
+Java_org_billthefarmer_mididriver_MidiDriver_loadDLS(JNIEnv *env,
+						     jobject obj,
+						     jstring jpath)
+{
+    jboolean isCopy;
+    EAS_RESULT result;
+    EAS_FILE file;
+
+    if (pEASData == NULL || midiHandle == NULL)
+	return JNI_FALSE;
+
+    file.path = env->GetStringUTFChars(jpath, &isCopy);
+    file.fd = 0;
+
+    result = pEAS_LoadDLSCollection(pEASData, midiHandle, &file);
+
+    env->ReleaseStringUTFChars(jpath, file.path);
+
+    if (result != EAS_SUCCESS)
+	return JNI_FALSE;
+
+    return JNI_TRUE;
+}
+
 // shutdown EAS midi
 jboolean
 Java_org_billthefarmer_mididriver_MidiDriver_shutdown(JNIEnv *env,
@@ -590,6 +618,18 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved)
 	) {
         env->ThrowNew(linkageErrorClass,
 		      "EAS_CloseMIDIStream resolution failed");
+        return -1;
+    }
+
+    pEAS_LoadDLSCollection = (EAS_PUBLIC EAS_RESULT (*)
+			      (EAS_DATA_HANDLE pEASData,
+			       EAS_HANDLE streamHandle,
+			       EAS_FILE_LOCATOR locator))
+        dlsym(libHandler, "EAS_LoadDLSCollection");
+    if (!pEAS_LoadDLSCollection
+	) {
+        env->ThrowNew(linkageErrorClass,
+		      "EAS_LoadDLSCollection resolution failed");
         return -1;
     }
 
