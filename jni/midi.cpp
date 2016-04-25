@@ -621,8 +621,8 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved)
     pEAS_CloseMIDIStream = (EAS_PUBLIC EAS_RESULT (*) (EAS_DATA_HANDLE pEASData,
 						       EAS_HANDLE streamHandle))
         dlsym(libHandler, "EAS_CloseMIDIStream");
-    if (!pEAS_CloseMIDIStream
-	) {
+    if (!pEAS_CloseMIDIStream)
+    {
         env->ThrowNew(linkageErrorClass,
 		      "EAS_CloseMIDIStream resolution failed");
         return -1;
@@ -633,8 +633,8 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved)
 			       EAS_HANDLE streamHandle,
 			       EAS_FILE_LOCATOR locator))
         dlsym(libHandler, "EAS_LoadDLSCollection");
-    if (!pEAS_LoadDLSCollection
-	) {
+    if (!pEAS_LoadDLSCollection)
+    {
         env->ThrowNew(linkageErrorClass,
 		      "EAS_LoadDLSCollection resolution failed");
         return -1;
