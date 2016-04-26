@@ -489,7 +489,10 @@ Java_org_billthefarmer_mididriver_MidiDriver_loadDLS(JNIEnv *env,
     env->ReleaseStringUTFChars(jpath, file.path);
 
     if (result != EAS_SUCCESS)
+    {
+	LOG_E(LOG_TAG, "Load DLS collection failed: %ld", result);
 	return JNI_FALSE;
+    }
 
     return JNI_TRUE;
 }
