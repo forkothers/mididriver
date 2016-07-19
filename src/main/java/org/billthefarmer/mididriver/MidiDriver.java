@@ -77,4 +77,5 @@ public final class MidiDriver {
 
     private native boolean shutdown();
 
+    public  native boolean loadDLS(String path, boolean global);
 }
